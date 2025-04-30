@@ -85,29 +85,30 @@ namespace PeriodTracker.API.Controllers
         public ActionResult<Model.Entities.CycleEntry> CreateEntry(Model.Entities.CycleEntry entry)
         {
             // Check if cycle exists
-            var cycle = _periodCycleRepository.GetById(entry.cycleId);
+            var cycle = _periodCycleRepository.GetById(entry.CycleId);
             if (cycle == null)
             {
-                return NotFound($"Period cycle with ID {entry.cycleId} not found");
+                return NotFound($"Period cycle with ID {entry.CycleId} not found");
             }
             
             // Check if calendar exists
-            var calendar = _calendarRepository.GetById(entry.calendarId);
+            var calendar = _calendarRepository.GetById(entry.CalendarId);
             if (calendar == null)
             {
-                return NotFound($"Calendar with ID {entry.calendarId} not found");
+                return NotFound($"Calendar with ID {entry.CalendarId} not found");
             }
 
             // Validate that the entry date is within the cycle date range
-            if (entry.date < cycle.startDate || entry.date > cycle.endDate)
+            if (entry.Date < cycle.StartDate || entry.Date > cycle.EndDate)
             {
-                return BadRequest($"Entry date must be within the cycle date range ({cycle.startDate.ToShortDateString()} to {cycle.endDate.ToShortDateString()})");
+                return BadRequest($"Entry date must be within the cycle date range ({cycle.StartDate.ToShortDateString()} to {cycle.EndDate.ToShortDateString()})");
             }
 
             // Validate that the entry date matches the calendar month/year
-            if (entry.date.Month != calendar.month || entry.date.Year != calendar.year)
+            // entry.Date.Month is an int; calendar.Month is a string. Convert calendar.Month to short for numeric comparison:
+            if (entry.Date.Month != Convert.ToInt16(calendar.Month) || entry.Date.Year != calendar.Year) 
             {
-                return BadRequest($"Entry date must match calendar month/year (Month: {calendar.month}, Year: {calendar.year})");
+                return BadRequest($"Entry date must match calendar month/year (Month: {calendar.Month}, Year: {calendar.Year})");
             }
 
             bool success = _cycleEntryRepository.InsertEntry(entry);
@@ -116,7 +117,7 @@ namespace PeriodTracker.API.Controllers
                 return BadRequest("Failed to create cycle entry");
             }
 
-            return CreatedAtAction(nameof(GetEntryById), new { id = entry.entryId }, entry);
+            return CreatedAtAction(nameof(GetEntryById), new { id = entry.EntryId }, entry);
         }
 
         // DELETE: api/cycleentry/{id}

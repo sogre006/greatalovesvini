@@ -10,3 +10,4 @@
 /Users/gretawanner/Documents/PeriodTracker/Backend/PeriodTracker.Model/obj/Debug/net8.0/refint/PeriodTracker.Model.dll
 /Users/gretawanner/Documents/PeriodTracker/Backend/PeriodTracker.Model/obj/Debug/net8.0/PeriodTracker.Model.pdb
 /Users/gretawanner/Documents/PeriodTracker/Backend/PeriodTracker.Model/obj/Debug/net8.0/ref/PeriodTracker.Model.dll
+/Users/gretawanner/Documents/PeriodTracker/Backend/PeriodTracker.Model/obj/Debug/net8.0/PeriodTracker.Model.sourcelink.json

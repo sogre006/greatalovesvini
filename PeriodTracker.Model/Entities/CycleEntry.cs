@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 
 namespace PeriodTracker.Model.Entities;
 
@@ -5,20 +6,19 @@ public class CycleEntry
 {
     public CycleEntry(int id)
     {
-        EntryId = id;
+        entryId = id;
     }
 
-    public int EntryId { get; set; }
-
-    public int CycleId { get; set; }
-
-    public int CalendarId { get; set; }
-
-    public DateTime Date { get; set; }
-
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public int entryId { get; set; } // Using camelCase to match frontend expectations
+    public int cycleId { get; set; }
+    public int calendarId { get; set; }
+    public DateTime date { get; set; }
+    public DateTime createdAt { get; set; } = DateTime.Now;
 
     // Navigation properties
-    public PeriodCycle PeriodCycle { get; set; } //foreign key from PeriodCycle
-    public Calendar Calendar { get; set; } //foreign key from Calendar
+    [JsonIgnore] // Prevent circular references
+    public PeriodCycle PeriodCycle { get; set; }
+    
+    [JsonIgnore] // Prevent circular references
+    public Calendar Calendar { get; set; }
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PeriodTracker.Model")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f08387754ee74a6ef498046334b30e0e83273370")]
 [assembly: System.Reflection.AssemblyProductAttribute("PeriodTracker.Model")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PeriodTracker.Model")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

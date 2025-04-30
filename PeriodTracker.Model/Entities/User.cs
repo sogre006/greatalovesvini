@@ -1,22 +1,24 @@
 namespace PeriodTracker.Model.Entities;
 
+using System.Text.Json.Serialization;
+
 public class User
 {
     public User(int id)
     {
-        UserId = id;
+        userId = id;
     }
 
-    public int UserId { get; set; } //primary key 
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public string Password { get; set; } //store as hashed in production!
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public int userId { get; set; } // Using camelCase to match frontend expectations
+    public string name { get; set; }
+    public string email { get; set; }
+    public string pw { get; set; } // Database column name is pw
+    public DateTime createdAt { get; set; } = DateTime.Now;
 
     // Navigation properties
-    //public ICollection<PeriodCycle> PeriodCycles { get; set; }
-    //public ICollection<Calendar> Calendars { get; set; }
+    [JsonIgnore] // Prevent circular references
+    public List<PeriodCycle> PeriodCycles { get; set; } = new List<PeriodCycle>();
+    
+    [JsonIgnore] // Prevent circular references
+    public List<Calendar> Calendars { get; set; } = new List<Calendar>();
 }
-
-
-

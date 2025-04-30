@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using PeriodTracker.Model.Entities;
 using Npgsql;
 using NpgsqlTypes;
+using System.Globalization;
 
 namespace PeriodTracker.Model.Repositories
 {
@@ -11,7 +12,20 @@ namespace PeriodTracker.Model.Repositories
         {
         }
 
-        public Calendar GetById(int id)
+        // Helper method to convert numeric month to month name
+        private string GetMonthName(short monthNumber)
+        {
+            return new DateTime(2000, monthNumber, 1)
+                .ToString("MMMM", CultureInfo.InvariantCulture);
+        }
+
+        // Helper method to convert month name to numeric month
+        private short GetMonthNumber(string monthName)
+        {
+            return (short)DateTime.ParseExact(monthName, "MMMM", CultureInfo.InvariantCulture).Month;
+        }
+
+        public PeriodTracker.Model.Entities.Calendar GetById(int id)
         {
             NpgsqlConnection dbConn = null;
             try
@@ -24,10 +38,10 @@ namespace PeriodTracker.Model.Repositories
                 var data = GetData(dbConn, cmd);
                 if (data != null && data.Read())
                 {
-                    return new Calendar(Convert.ToInt32(data["calendar_id"]))
+                    return new PeriodTracker.Model.Entities.Calendar(Convert.ToInt32(data["calendar_id"]))
                     {
                         userId = Convert.ToInt32(data["user_id"]),
-                        month = Convert.ToInt16(data["month"]),
+                        month = data["month"].ToString(),
                         year = Convert.ToInt16(data["year"]),
                         createdAt = Convert.ToDateTime(data["created_at"])
                     };
@@ -40,8 +54,11 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public Calendar GetByUserAndMonthYear(int userId, short month, short year)
+        public PeriodTracker.Model.Entities.Calendar GetByUserAndMonthYear(int userId, short numericMonth, short year)
         {
+            // Convert numeric month to month name for database query
+            string monthName = GetMonthName(numericMonth);
+            
             NpgsqlConnection dbConn = null;
             try
             {
@@ -49,16 +66,16 @@ namespace PeriodTracker.Model.Repositories
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = "SELECT * FROM Calendar WHERE user_id = @userId AND month = @month AND year = @year";
                 cmd.Parameters.Add("@userId", NpgsqlDbType.Integer).Value = userId;
-                cmd.Parameters.Add("@month", NpgsqlDbType.Smallint).Value = month;
+                cmd.Parameters.Add("@month", NpgsqlDbType.Varchar).Value = monthName;
                 cmd.Parameters.Add("@year", NpgsqlDbType.Smallint).Value = year;
                 
                 var data = GetData(dbConn, cmd);
                 if (data != null && data.Read())
                 {
-                    return new Calendar(Convert.ToInt32(data["calendar_id"]))
+                    return new PeriodTracker.Model.Entities.Calendar(Convert.ToInt32(data["calendar_id"]))
                     {
                         userId = Convert.ToInt32(data["user_id"]),
-                        month = Convert.ToInt16(data["month"]),
+                        month = data["month"].ToString(),
                         year = Convert.ToInt16(data["year"]),
                         createdAt = Convert.ToDateTime(data["created_at"])
                     };
@@ -71,15 +88,21 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public List<Calendar> GetCalendarsByUserId(int userId)
+        public List<PeriodTracker.Model.Entities.Calendar> GetCalendarsByUserId(int userId)
         {
             NpgsqlConnection dbConn = null;
-            var calendars = new List<Calendar>();
+            var calendars = new List<PeriodTracker.Model.Entities.Calendar>();
             try
             {
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM Calendar WHERE user_id = @userId ORDER BY year DESC, month DESC";
+                cmd.CommandText = @"SELECT * FROM Calendar WHERE user_id = @userId 
+                                   ORDER BY year DESC, CASE month
+                                   WHEN 'January' THEN 1 WHEN 'February' THEN 2 WHEN 'March' THEN 3
+                                   WHEN 'April' THEN 4 WHEN 'May' THEN 5 WHEN 'June' THEN 6
+                                   WHEN 'July' THEN 7 WHEN 'August' THEN 8 WHEN 'September' THEN 9
+                                   WHEN 'October' THEN 10 WHEN 'November' THEN 11 WHEN 'December' THEN 12
+                                   END DESC";
                 cmd.Parameters.Add("@userId", NpgsqlDbType.Integer).Value = userId;
                 
                 var data = GetData(dbConn, cmd);
@@ -87,10 +110,10 @@ namespace PeriodTracker.Model.Repositories
                 {
                     while (data.Read())
                     {
-                        Calendar calendar = new Calendar(Convert.ToInt32(data["calendar_id"]))
+                        PeriodTracker.Model.Entities.Calendar calendar = new PeriodTracker.Model.Entities.Calendar(Convert.ToInt32(data["calendar_id"]))
                         {
                             userId = Convert.ToInt32(data["user_id"]),
-                            month = Convert.ToInt16(data["month"]),
+                            month = data["month"].ToString(),
                             year = Convert.ToInt16(data["year"]),
                             createdAt = Convert.ToDateTime(data["created_at"])
                         };
@@ -105,8 +128,15 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public bool InsertCalendar(Calendar calendar)
+        public bool InsertCalendar(PeriodTracker.Model.Entities.Calendar calendar)
         {
+            // If calendar.month is passed as a numeric value (frontend sends 1-12), 
+            // we need to convert it to a month name
+            if (short.TryParse(calendar.month, out short numericMonth) && numericMonth >= 1 && numericMonth <= 12)
+            {
+                calendar.month = GetMonthName(numericMonth);
+            }
+            
             NpgsqlConnection dbConn = null;
             try
             {
@@ -120,7 +150,7 @@ namespace PeriodTracker.Model.Repositories
                     RETURNING calendar_id";
                 
                 cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, calendar.userId);
-                cmd.Parameters.AddWithValue("@month", NpgsqlDbType.Smallint, calendar.month);
+                cmd.Parameters.AddWithValue("@month", NpgsqlDbType.Varchar, calendar.month);
                 cmd.Parameters.AddWithValue("@year", NpgsqlDbType.Smallint, calendar.year);
                 cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
                 
@@ -131,8 +161,9 @@ namespace PeriodTracker.Model.Repositories
                 
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error inserting calendar: {ex.Message}");
                 return false;
             }
             finally

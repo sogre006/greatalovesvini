@@ -6,12 +6,12 @@ namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PeriodCycle : ControllerBase
+    public class PeriodCycleController : ControllerBase
     {
         private readonly PeriodCycleRepository _periodCycleRepository;
         private readonly UserRepository _userRepository;
 
-        public PeriodCycle(PeriodCycleRepository periodCycleRepository, UserRepository userRepository)
+        public PeriodCycleController(PeriodCycleRepository periodCycleRepository, UserRepository userRepository)
         {
             _periodCycleRepository = periodCycleRepository;
             _userRepository = userRepository;
@@ -74,14 +74,14 @@ namespace PeriodTracker.API.Controllers
         public ActionResult<Model.Entities.PeriodCycle> CreateCycle(Model.Entities.PeriodCycle cycle)
         {
             // Check if user exists
-            var user = _userRepository.GetUserById(cycle.userId);
+            var user = _userRepository.GetUserById(cycle.UserId);
             if (user == null)
             {
-                return NotFound($"User with ID {cycle.userId} not found");
+                return NotFound($"User with ID {cycle.UserId} not found");
             }
 
             // Validate that endDate is after startDate
-            if (cycle.endDate < cycle.startDate)
+            if (cycle.EndDate < cycle.StartDate)
             {
                 return BadRequest("End date must be after start date");
             }
@@ -92,7 +92,7 @@ namespace PeriodTracker.API.Controllers
                 return BadRequest("Failed to create period cycle");
             }
 
-            return CreatedAtAction(nameof(GetCycleById), new { id = cycle.cycleId }, cycle);
+            return CreatedAtAction(nameof(GetCycleById), new { id = cycle.CycleId }, cycle);
         }
 
         // PUT: api/periodcycle
@@ -103,20 +103,20 @@ namespace PeriodTracker.API.Controllers
         public ActionResult UpdateCycle(Model.Entities.PeriodCycle cycle)
         {
             // Check if cycle exists
-            var existingCycle = _periodCycleRepository.GetById(cycle.cycleId);
+            var existingCycle = _periodCycleRepository.GetById(cycle.CycleId);
             if (existingCycle == null)
             {
-                return NotFound($"Period cycle with ID {cycle.cycleId} not found");
+                return NotFound($"Period cycle with ID {cycle.CycleId} not found");
             }
             
             // Ensure user owns the cycle
-            if (existingCycle.userId != cycle.userId)
+            if (existingCycle.UserId != cycle.UserId)
             {
                 return BadRequest("You can only update your own period cycles");
             }
 
             // Validate that endDate is after startDate
-            if (cycle.endDate < cycle.startDate)
+            if (cycle.EndDate < cycle.StartDate)
             {
                 return BadRequest("End date must be after start date");
             }
@@ -146,7 +146,7 @@ namespace PeriodTracker.API.Controllers
             }
             
             // Ensure user owns the cycle
-            if (existingCycle.userId != userId)
+            if (existingCycle.UserId != userId)
             {
                 return StatusCode(StatusCodes.Status403Forbidden, "You can only delete your own period cycles");
             }

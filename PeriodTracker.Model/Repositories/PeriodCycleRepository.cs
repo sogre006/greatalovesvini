@@ -26,10 +26,10 @@ namespace PeriodTracker.Model.Repositories
                 {
                     return new PeriodCycle(Convert.ToInt32(data["cycle_id"]))
                     {
-                        userId = Convert.ToInt32(data["user_id"]),
-                        startDate = Convert.ToDateTime(data["start_date"]),
-                        endDate = Convert.ToDateTime(data["end_date"]),
-                        createdAt = Convert.ToDateTime(data["created_at"])
+                        UserId = Convert.ToInt32(data["user_id"]),
+                        StartDate = Convert.ToDateTime(data["start_date"]),
+                        EndDate = Convert.ToDateTime(data["end_date"]),
+                        CreatedAt = Convert.ToDateTime(data["created_at"])
                     };
                 }
                 return null;
@@ -40,7 +40,7 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public List<PeriodCycle> GetCyclesByUserId(int userId)
+        public List<PeriodCycle> GetCyclesByUserId(int UserId)
         {
             NpgsqlConnection dbConn = null;
             var cycles = new List<PeriodCycle>();
@@ -48,8 +48,8 @@ namespace PeriodTracker.Model.Repositories
             {
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM PeriodCycle WHERE user_id = @userId ORDER BY start_date DESC";
-                cmd.Parameters.Add("@userId", NpgsqlDbType.Integer).Value = userId;
+                cmd.CommandText = "SELECT * FROM PeriodCycle WHERE user_id = @UserId ORDER BY start_date DESC";
+                cmd.Parameters.Add("@UserId", NpgsqlDbType.Integer).Value = UserId;
                 
                 var data = GetData(dbConn, cmd);
                 if (data != null)
@@ -58,10 +58,10 @@ namespace PeriodTracker.Model.Repositories
                     {
                         PeriodCycle cycle = new PeriodCycle(Convert.ToInt32(data["cycle_id"]))
                         {
-                            userId = Convert.ToInt32(data["user_id"]),
-                            startDate = Convert.ToDateTime(data["start_date"]),
-                            endDate = Convert.ToDateTime(data["end_date"]),
-                            createdAt = Convert.ToDateTime(data["created_at"])
+                            UserId = Convert.ToInt32(data["user_id"]),
+                            StartDate = Convert.ToDateTime(data["start_date"]),
+                            EndDate = Convert.ToDateTime(data["end_date"]),
+                            CreatedAt = Convert.ToDateTime(data["created_at"])
                         };
                         cycles.Add(cycle);
                     }
@@ -85,18 +85,18 @@ namespace PeriodTracker.Model.Repositories
                     INSERT INTO PeriodCycle 
                     (user_id, start_date, end_date, created_at)
                     VALUES 
-                    (@userId, @startDate, @endDate, @createdAt)
+                    (@UserId, @StartDate, @EndDate, @CreatedAt)
                     RETURNING cycle_id";
                 
-                cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, cycle.userId);
-                cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.startDate);
-                cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.endDate);
-                cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
+                cmd.Parameters.AddWithValue("@UserId", NpgsqlDbType.Integer, cycle.UserId);
+                cmd.Parameters.AddWithValue("@StartDate", NpgsqlDbType.Date, cycle.StartDate);
+                cmd.Parameters.AddWithValue("@EndDate", NpgsqlDbType.Date, cycle.EndDate);
+                cmd.Parameters.AddWithValue("@CreatedAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
                 
                 dbConn.Open();
                 // Get the newly created cycle ID
                 var cycleId = Convert.ToInt32(cmd.ExecuteScalar());
-                cycle.cycleId = cycleId;
+                cycle.CycleId = cycleId;
                 
                 return true;
             }
@@ -119,14 +119,14 @@ namespace PeriodTracker.Model.Repositories
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = @"
                     UPDATE PeriodCycle SET
-                    start_date = @startDate,
-                    end_date = @endDate
-                    WHERE cycle_id = @cycleId AND user_id = @userId";
+                    start_date = @StartDate,
+                    end_date = @EndDate
+                    WHERE cycle_id = @cycleId AND user_id = @UserId";
                 
-                cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.startDate);
-                cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.endDate);
-                cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycle.cycleId);
-                cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, cycle.userId);
+                cmd.Parameters.AddWithValue("@StartDate", NpgsqlDbType.Date, cycle.StartDate);
+                cmd.Parameters.AddWithValue("@EndDate", NpgsqlDbType.Date, cycle.EndDate);
+                cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycle.CycleId);
+                cmd.Parameters.AddWithValue("@UserId", NpgsqlDbType.Integer, cycle.UserId);
                 
                 bool result = UpdateData(dbConn, cmd);
                 return result;
@@ -137,16 +137,16 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public bool DeleteCycle(int id, int userId)
+        public bool DeleteCycle(int id, int UserId)
         {
             NpgsqlConnection dbConn = null;
             try
             {
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
-                cmd.CommandText = "DELETE FROM PeriodCycle WHERE cycle_id = @id AND user_id = @userId";
+                cmd.CommandText = "DELETE FROM PeriodCycle WHERE cycle_id = @id AND user_id = @UserId";
                 cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, id);
-                cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, userId);
+                cmd.Parameters.AddWithValue("@UserId", NpgsqlDbType.Integer, UserId);
                 
                 bool result = DeleteData(dbConn, cmd);
                 return result;
@@ -157,15 +157,15 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public double GetAverageCycleDuration(int userId)
+        public double GetAverageCycleDuration(int UserId)
         {
             NpgsqlConnection dbConn = null;
             try
             {
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
-                cmd.CommandText = "SELECT AVG(EXTRACT(EPOCH FROM duration)/86400) FROM PeriodCycle WHERE user_id = @userId";
-                cmd.Parameters.Add("@userId", NpgsqlDbType.Integer).Value = userId;
+                cmd.CommandText = "SELECT AVG(EXTRACT(EPOCH FROM duration)/86400) FROM PeriodCycle WHERE user_id = @UserId";
+                cmd.Parameters.Add("@UserId", NpgsqlDbType.Integer).Value = UserId;
                 
                 dbConn.Open();
                 var result = cmd.ExecuteScalar();

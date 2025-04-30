@@ -8,7 +8,7 @@ public class BaseRepository
     protected string ConnectionString { get; }
     public BaseRepository(IConfiguration configuration)
     {
-        ConnectionString = configuration.GetConnectionString("PeriodTrackerDB");
+        ConnectionString = configuration.GetConnectionString("period_tracker_db");
     }
     protected NpgsqlDataReader GetData(NpgsqlConnection conn, NpgsqlCommand cmd)
     {

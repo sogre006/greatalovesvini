@@ -38,3 +38,4 @@
 /Users/gretawanner/Documents/PeriodTracker/Backend/PeriodTracker.API/bin/Debug/net8.0/Npgsql.dll
 /Users/gretawanner/Documents/PeriodTracker/Backend/PeriodTracker.API/bin/Debug/net8.0/PeriodTracker.Model.dll
 /Users/gretawanner/Documents/PeriodTracker/Backend/PeriodTracker.API/bin/Debug/net8.0/PeriodTracker.Model.pdb
+/Users/gretawanner/Documents/PeriodTracker/Backend/PeriodTracker.API/obj/Debug/net8.0/PeriodTracker.API.sourcelink.json
