@@ -1,11 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using PeriodTracker.Model.Repositories;
 using PeriodTracker.Model.Entities;
-using System.Security.Cryptography;
 
 namespace PeriodTracker.API.Controllers
 {
@@ -47,11 +44,13 @@ namespace PeriodTracker.API.Controllers
                 return Unauthorized("Invalid username or password");
             }
 
-            // Generate JWT token
-            var token = GenerateJwtToken(user);
-
-            // Return the token
-            return Ok(new { token, user_id = user.userId });
+            // Return simple auth response
+            return Ok(new { 
+                user_id = user.userId,
+                name = user.name,
+                email = user.email,
+                isAuthenticated = true
+            });
         }
 
         [HttpPost("register")]
@@ -79,35 +78,11 @@ namespace PeriodTracker.API.Controllers
                 return BadRequest("Failed to create user");
             }
 
-            // Generate JWT token
-            var token = GenerateJwtToken(user);
-
-            // Return the token and user info
-            return Ok(new { token, user_id = user.userId });
-        }
-
-        private string GenerateJwtToken(User user)
-        {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.userId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("userId", user.userId.ToString())
-            };
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["JwtSettings:Issuer"],
-                audience: _configuration["JwtSettings:Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddDays(7),
-                signingCredentials: credentials
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            // Return success response
+            return Ok(new { 
+                message = "Registration successful", 
+                user_id = user.userId 
+            });
         }
 
         private string HashPassword(string password)
@@ -124,7 +99,7 @@ namespace PeriodTracker.API.Controllers
         private bool VerifyPassword(string providedPassword, string storedPassword)
         {
             // In a real app, would use BCrypt or similar to verify
-            // For now, just compare the passwords directly since we're not hashing in the sample
+            // For simplicity, just compare the passwords directly
             return providedPassword == storedPassword;
         }
     }

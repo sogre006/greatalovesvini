@@ -21,7 +21,7 @@ namespace PeriodTracker.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Model.Entities.PeriodCycle> GetCycleById(int id)
+        public ActionResult<PeriodCycle> GetCycleById(int id)
         {
             var cycle = _periodCycleRepository.GetById(id);
             if (cycle == null)
@@ -36,7 +36,7 @@ namespace PeriodTracker.API.Controllers
         [HttpGet("user/{userId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<Model.Entities.PeriodCycle>> GetCyclesByUserId(int userId)
+        public ActionResult<IEnumerable<PeriodCycle>> GetCyclesByUserId(int userId)
         {
             // Check if user exists
             var user = _userRepository.GetUserById(userId);
@@ -71,17 +71,17 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Model.Entities.PeriodCycle> CreateCycle(Model.Entities.PeriodCycle cycle)
+        public ActionResult<PeriodCycle> CreateCycle(PeriodCycle cycle)
         {
             // Check if user exists
-            var user = _userRepository.GetUserById(cycle.UserId);
+            var user = _userRepository.GetUserById(cycle.userId);
             if (user == null)
             {
-                return NotFound($"User with ID {cycle.UserId} not found");
+                return NotFound($"User with ID {cycle.userId} not found");
             }
 
             // Validate that endDate is after startDate
-            if (cycle.EndDate < cycle.StartDate)
+            if (cycle.endDate < cycle.startDate)
             {
                 return BadRequest("End date must be after start date");
             }
@@ -92,7 +92,7 @@ namespace PeriodTracker.API.Controllers
                 return BadRequest("Failed to create period cycle");
             }
 
-            return CreatedAtAction(nameof(GetCycleById), new { id = cycle.CycleId }, cycle);
+            return CreatedAtAction(nameof(GetCycleById), new { id = cycle.cycleId }, cycle);
         }
 
         // PUT: api/periodcycle
@@ -100,23 +100,23 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult UpdateCycle(Model.Entities.PeriodCycle cycle)
+        public ActionResult UpdateCycle(PeriodCycle cycle)
         {
             // Check if cycle exists
-            var existingCycle = _periodCycleRepository.GetById(cycle.CycleId);
+            var existingCycle = _periodCycleRepository.GetById(cycle.cycleId);
             if (existingCycle == null)
             {
-                return NotFound($"Period cycle with ID {cycle.CycleId} not found");
+                return NotFound($"Period cycle with ID {cycle.cycleId} not found");
             }
             
             // Ensure user owns the cycle
-            if (existingCycle.UserId != cycle.UserId)
+            if (existingCycle.userId != cycle.userId)
             {
                 return BadRequest("You can only update your own period cycles");
             }
 
             // Validate that endDate is after startDate
-            if (cycle.EndDate < cycle.StartDate)
+            if (cycle.endDate < cycle.startDate)
             {
                 return BadRequest("End date must be after start date");
             }
@@ -146,7 +146,7 @@ namespace PeriodTracker.API.Controllers
             }
             
             // Ensure user owns the cycle
-            if (existingCycle.UserId != userId)
+            if (existingCycle.userId != userId)
             {
                 return StatusCode(StatusCodes.Status403Forbidden, "You can only delete your own period cycles");
             }

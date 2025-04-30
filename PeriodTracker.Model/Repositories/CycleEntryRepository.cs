@@ -26,10 +26,10 @@ namespace PeriodTracker.Model.Repositories
                 {
                     return new CycleEntry(Convert.ToInt32(data["entry_id"]))
                     {
-                        CycleId = Convert.ToInt32(data["cycle_id"]),
-                        CalendarId = Convert.ToInt32(data["calendar_id"]),
-                        Date = Convert.ToDateTime(data["date"]),
-                        CreatedAt = Convert.ToDateTime(data["created_at"])
+                        cycleId = Convert.ToInt32(data["cycle_id"]),
+                        calendarId = Convert.ToInt32(data["calendar_id"]),
+                        date = Convert.ToDateTime(data["date"]),
+                        createdAt = Convert.ToDateTime(data["created_at"])
                     };
                 }
                 return null;
@@ -40,7 +40,7 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public List<CycleEntry> GetEntriesByCycleId(int CycleId)
+        public List<CycleEntry> GetEntriesByCycleId(int cycleId)
         {
             NpgsqlConnection dbConn = null;
             var entries = new List<CycleEntry>();
@@ -48,8 +48,8 @@ namespace PeriodTracker.Model.Repositories
             {
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM CycleEntry WHERE cycle_id = @CycleId ORDER BY Date";
-                cmd.Parameters.Add("@CycleId", NpgsqlDbType.Integer).Value = CycleId;
+                cmd.CommandText = "SELECT * FROM CycleEntry WHERE cycle_id = @cycleId ORDER BY Date";
+                cmd.Parameters.Add("@cycleId", NpgsqlDbType.Integer).Value = cycleId;
                 
                 var data = GetData(dbConn, cmd);
                 if (data != null)
@@ -58,10 +58,10 @@ namespace PeriodTracker.Model.Repositories
                     {
                         CycleEntry entry = new CycleEntry(Convert.ToInt32(data["entry_id"]))
                         {
-                            CycleId = Convert.ToInt32(data["cycle_id"]),
-                            CalendarId = Convert.ToInt32(data["calendar_id"]),
-                            Date = Convert.ToDateTime(data["date"]),
-                            CreatedAt = Convert.ToDateTime(data["created_at"])
+                            cycleId = Convert.ToInt32(data["cycle_id"]),
+                            calendarId = Convert.ToInt32(data["calendar_id"]),
+                            date = Convert.ToDateTime(data["date"]),
+                            createdAt = Convert.ToDateTime(data["created_at"])
                         };
                         entries.Add(entry);
                     }
@@ -74,7 +74,7 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public List<CycleEntry> GetEntriesByCalendarId(int CalendarId)
+        public List<CycleEntry> GetEntriesByCalendarId(int calendarId)
         {
             NpgsqlConnection dbConn = null;
             var entries = new List<CycleEntry>();
@@ -82,8 +82,8 @@ namespace PeriodTracker.Model.Repositories
             {
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM CycleEntry WHERE calendar_id = @CalendarId ORDER BY Date";
-                cmd.Parameters.Add("@CalendarId", NpgsqlDbType.Integer).Value = CalendarId;
+                cmd.CommandText = "SELECT * FROM CycleEntry WHERE calendar_id = @calendarId ORDER BY Date";
+                cmd.Parameters.Add("@calendarId", NpgsqlDbType.Integer).Value = calendarId;
                 
                 var data = GetData(dbConn, cmd);
                 if (data != null)
@@ -92,10 +92,10 @@ namespace PeriodTracker.Model.Repositories
                     {
                         CycleEntry entry = new CycleEntry(Convert.ToInt32(data["entry_id"]))
                         {
-                            CycleId = Convert.ToInt32(data["cycle_id"]),
-                            CalendarId = Convert.ToInt32(data["calendar_id"]),
-                            Date = Convert.ToDateTime(data["Date"]),
-                            CreatedAt = Convert.ToDateTime(data["created_at"])
+                            cycleId = Convert.ToInt32(data["cycle_id"]),
+                            calendarId = Convert.ToInt32(data["calendar_id"]),
+                            date = Convert.ToDateTime(data["date"]),
+                            createdAt = Convert.ToDateTime(data["created_at"])
                         };
                         entries.Add(entry);
                     }
@@ -119,18 +119,18 @@ namespace PeriodTracker.Model.Repositories
                     INSERT INTO CycleEntry 
                     (cycle_id, calendar_id, date, created_at)
                     VALUES 
-                    (@CycleId, @CalendarId, @Date, @CreatedAt)
+                    (@cycleId, @calendarId, @date, @createdAt)
                     RETURNING entry_id";
                 
-                cmd.Parameters.AddWithValue("@CycleId", NpgsqlDbType.Integer, entry.CycleId);
-                cmd.Parameters.AddWithValue("@CalendarId", NpgsqlDbType.Integer, entry.CalendarId);
-                cmd.Parameters.AddWithValue("@Date", NpgsqlDbType.Date, entry.Date);
-                cmd.Parameters.AddWithValue("@CreatedAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
+                cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, entry.cycleId);
+                cmd.Parameters.AddWithValue("@calendarId", NpgsqlDbType.Integer, entry.calendarId);
+                cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, entry.date);
+                cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
                 
                 dbConn.Open();
                 // Get the newly created entry ID
                 var entryId = Convert.ToInt32(cmd.ExecuteScalar());
-                entry.EntryId = entryId;
+                entry.entryId = entryId;
                 
                 return true;
             }
@@ -163,7 +163,7 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
-        public List<CycleEntry> GetEntriesByDate(DateTime Date)
+        public List<CycleEntry> GetEntriesByDate(DateTime date)
         {
             NpgsqlConnection dbConn = null;
             var entries = new List<CycleEntry>();
@@ -171,8 +171,8 @@ namespace PeriodTracker.Model.Repositories
             {
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM CycleEntry WHERE Date = @Date";
-                cmd.Parameters.Add("@Date", NpgsqlDbType.Date).Value = Date;
+                cmd.CommandText = "SELECT * FROM CycleEntry WHERE Date = @date";
+                cmd.Parameters.Add("@date", NpgsqlDbType.Date).Value = date;
                 
                 var data = GetData(dbConn, cmd);
                 if (data != null)
@@ -181,9 +181,9 @@ namespace PeriodTracker.Model.Repositories
                     {
                         CycleEntry entry = new CycleEntry(Convert.ToInt32(data["entry_id"]))
                         {
-                            CycleId = Convert.ToInt32(data["cycle_id"]),
-                            CalendarId = Convert.ToInt32(data["calendar_id"]),
-                            Date = Convert.ToDateTime(data["date"])
+                            cycleId = Convert.ToInt32(data["cycle_id"]),
+                            calendarId = Convert.ToInt32(data["calendar_id"]),
+                            date = Convert.ToDateTime(data["date"])
                         };
                         entries.Add(entry);
                     }

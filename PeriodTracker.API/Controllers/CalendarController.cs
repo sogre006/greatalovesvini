@@ -6,12 +6,12 @@ namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class Calendar : ControllerBase
+    public class CalendarController : ControllerBase
     {
         private readonly CalendarRepository _calendarRepository;
         private readonly UserRepository _userRepository;
 
-        public Calendar(CalendarRepository calendarRepository, UserRepository userRepository)
+        public CalendarController(CalendarRepository calendarRepository, UserRepository userRepository)
         {
             _calendarRepository = calendarRepository;
             _userRepository = userRepository;
@@ -21,7 +21,7 @@ namespace PeriodTracker.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Model.Entities.Calendar> GetCalendarById(int id)
+        public ActionResult<Calendar> GetCalendarById(int id)
         {
             var calendar = _calendarRepository.GetById(id);
             if (calendar == null)
@@ -36,7 +36,7 @@ namespace PeriodTracker.API.Controllers
         [HttpGet("user/{userId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<Model.Entities.Calendar>> GetCalendarsByUserId(int userId)
+        public ActionResult<IEnumerable<Calendar>> GetCalendarsByUserId(int userId)
         {
             // Check if user exists
             var user = _userRepository.GetUserById(userId);
@@ -53,7 +53,7 @@ namespace PeriodTracker.API.Controllers
         [HttpGet("user/{userId}/month/{month}/year/{year}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Model.Entities.Calendar> GetCalendarByMonthYear(int userId, string month, short year)
+        public ActionResult<Calendar> GetCalendarByMonthYear(int userId, string month, short year)
         {
             // Check if user exists
             var user = _userRepository.GetUserById(userId);
@@ -62,7 +62,22 @@ namespace PeriodTracker.API.Controllers
                 return NotFound($"User with ID {userId} not found");
             }
 
-            var calendar = _calendarRepository.GetByUserAndMonthYear(userId, month, year);
+            // Handle the case where month might be a number (1-12)
+            short numericMonth;
+            bool isNumeric = short.TryParse(month, out numericMonth);
+
+            Calendar calendar;
+            if (isNumeric && numericMonth >= 1 && numericMonth <= 12)
+            {
+                // If month is a numeric value (1-12), get by numeric month
+                calendar = _calendarRepository.GetByUserAndMonthYear(userId, numericMonth, year);
+            }
+            else
+            {
+                // If month is a name (January, February, etc.), use it directly
+                calendar = _calendarRepository.GetByUserAndMonthYear(userId, month, year);
+            }
+
             if (calendar == null)
             {
                 return NotFound($"Calendar for user ID {userId}, month {month}, year {year} not found");
@@ -77,29 +92,37 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public ActionResult<Model.Entities.Calendar> CreateCalendar(Model.Entities.Calendar calendar)
+        public ActionResult<Calendar> CreateCalendar(Calendar calendar)
         {
             // Check if user exists
-            var user = _userRepository.GetUserById(calendar.UserId);
+            var user = _userRepository.GetUserById(calendar.userId);
             if (user == null)
             {
-                return NotFound($"User with ID {calendar.UserId} not found");
+                return NotFound($"User with ID {calendar.userId} not found");
+            }
+
+            // Handle the case where month might be a numeric value
+            short numericMonth;
+            bool isNumeric = short.TryParse(calendar.month, out numericMonth);
+
+            if (isNumeric)
+            {
+                // Validate month is between 1-12
+                if (numericMonth < 1 || numericMonth > 12)
+                {
+                    return BadRequest("Month must be between 1 and 12");
+                }
             }
 
             // Check if calendar with same month/year already exists for user
-            var existingCalendar = _calendarRepository.GetByUserAndMonthYear(calendar.UserId, calendar.Month.ToString(), calendar.Year);
+            var existingCalendar = isNumeric
+                ? _calendarRepository.GetByUserAndMonthYear(calendar.userId, numericMonth, calendar.year)
+                : _calendarRepository.GetByUserAndMonthYear(calendar.userId, calendar.month, calendar.year);
+
             if (existingCalendar != null)
             {
-                return Conflict($"Calendar for month {calendar.Month}, year {calendar.Year} already exists for user with ID {calendar.UserId}");
+                return Conflict($"Calendar for month {calendar.month}, year {calendar.year} already exists for user with ID {calendar.userId}");
             }
-
-            // Validate month (1-12)
-            // Convert .Month to short before comparing
-            if (Convert.ToInt16(calendar.Month) < 1 || Convert.ToInt16(calendar.Month) > 12) // <-- FIX
-            {
-                return BadRequest("Month must be between 1 and 12");
-            }
-
 
             bool success = _calendarRepository.InsertCalendar(calendar);
             if (!success)
@@ -107,7 +130,7 @@ namespace PeriodTracker.API.Controllers
                 return BadRequest("Failed to create calendar");
             }
 
-            return CreatedAtAction(nameof(GetCalendarById), new { id = calendar.CalendarId }, calendar);
+            return CreatedAtAction(nameof(GetCalendarById), new { id = calendar.calendarId }, calendar);
         }
 
         // DELETE: api/calendar/{id}/user/{userId}
@@ -126,7 +149,7 @@ namespace PeriodTracker.API.Controllers
             }
 
             // Ensure user owns the calendar
-            if (existingCalendar.UserId != userId)
+            if (existingCalendar.userId != userId)
             {
                 return StatusCode(StatusCodes.Status403Forbidden, "You can only delete your own calendars");
             }

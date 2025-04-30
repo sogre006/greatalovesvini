@@ -54,10 +54,23 @@ namespace PeriodTracker.Model.Repositories
             }
         }
 
+        // Overloaded method for numeric month
         public PeriodTracker.Model.Entities.Calendar GetByUserAndMonthYear(int userId, short numericMonth, short year)
         {
             // Convert numeric month to month name for database query
             string monthName = GetMonthName(numericMonth);
+            return GetByUserAndMonthYear(userId, monthName, year);
+        }
+
+        // Original method for month name
+        public PeriodTracker.Model.Entities.Calendar GetByUserAndMonthYear(int userId, string month, short year)
+        {
+            // Check if month is a numeric value (1-12)
+            short numericMonth;
+            if (short.TryParse(month, out numericMonth) && numericMonth >= 1 && numericMonth <= 12)
+            {
+                month = GetMonthName(numericMonth);
+            }
             
             NpgsqlConnection dbConn = null;
             try
@@ -66,7 +79,7 @@ namespace PeriodTracker.Model.Repositories
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = "SELECT * FROM Calendar WHERE user_id = @userId AND month = @month AND year = @year";
                 cmd.Parameters.Add("@userId", NpgsqlDbType.Integer).Value = userId;
-                cmd.Parameters.Add("@month", NpgsqlDbType.Varchar).Value = monthName;
+                cmd.Parameters.Add("@month", NpgsqlDbType.Varchar).Value = month;
                 cmd.Parameters.Add("@year", NpgsqlDbType.Smallint).Value = year;
                 
                 var data = GetData(dbConn, cmd);

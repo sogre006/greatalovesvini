@@ -6,13 +6,13 @@ namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CycleEntry : ControllerBase
+    public class CycleEntryController : ControllerBase
     {
         private readonly CycleEntryRepository _cycleEntryRepository;
         private readonly PeriodCycleRepository _periodCycleRepository;
         private readonly CalendarRepository _calendarRepository;
 
-        public CycleEntry(CycleEntryRepository cycleEntryRepository, PeriodCycleRepository periodCycleRepository, CalendarRepository calendarRepository)
+        public CycleEntryController(CycleEntryRepository cycleEntryRepository, PeriodCycleRepository periodCycleRepository, CalendarRepository calendarRepository)
         {
             _cycleEntryRepository = cycleEntryRepository;
             _periodCycleRepository = periodCycleRepository;
@@ -23,7 +23,7 @@ namespace PeriodTracker.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Model.Entities.CycleEntry> GetEntryById(int id)
+        public ActionResult<CycleEntry> GetEntryById(int id)
         {
             var entry = _cycleEntryRepository.GetById(id);
             if (entry == null)
@@ -38,7 +38,7 @@ namespace PeriodTracker.API.Controllers
         [HttpGet("cycle/{cycleId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<Model.Entities.CycleEntry>> GetEntriesByCycleId(int cycleId)
+        public ActionResult<IEnumerable<CycleEntry>> GetEntriesByCycleId(int cycleId)
         {
             // Check if cycle exists
             var cycle = _periodCycleRepository.GetById(cycleId);
@@ -55,7 +55,7 @@ namespace PeriodTracker.API.Controllers
         [HttpGet("calendar/{calendarId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<Model.Entities.CycleEntry>> GetEntriesByCalendarId(int calendarId)
+        public ActionResult<IEnumerable<CycleEntry>> GetEntriesByCalendarId(int calendarId)
         {
             // Check if calendar exists
             var calendar = _calendarRepository.GetById(calendarId);
@@ -71,8 +71,10 @@ namespace PeriodTracker.API.Controllers
         // GET: api/cycleentry/date/{date}
         [HttpGet("date/{date}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<IEnumerable<Model.Entities.CycleEntry>> GetEntriesByDate(DateTime date)
+        public ActionResult<IEnumerable<CycleEntry>> GetEntriesByDate(DateTime date)
         {
+            // The date parameter will be automatically bound from the route
+            // Format should be yyyy-MM-dd (ISO 8601)
             var entries = _cycleEntryRepository.GetEntriesByDate(date);
             return Ok(entries);
         }
@@ -82,33 +84,46 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Model.Entities.CycleEntry> CreateEntry(Model.Entities.CycleEntry entry)
+        public ActionResult<CycleEntry> CreateEntry(CycleEntry entry)
         {
             // Check if cycle exists
-            var cycle = _periodCycleRepository.GetById(entry.CycleId);
+            var cycle = _periodCycleRepository.GetById(entry.cycleId);
             if (cycle == null)
             {
-                return NotFound($"Period cycle with ID {entry.CycleId} not found");
+                return NotFound($"Period cycle with ID {entry.cycleId} not found");
             }
             
             // Check if calendar exists
-            var calendar = _calendarRepository.GetById(entry.CalendarId);
+            var calendar = _calendarRepository.GetById(entry.calendarId);
             if (calendar == null)
             {
-                return NotFound($"Calendar with ID {entry.CalendarId} not found");
+                return NotFound($"Calendar with ID {entry.calendarId} not found");
             }
 
             // Validate that the entry date is within the cycle date range
-            if (entry.Date < cycle.StartDate || entry.Date > cycle.EndDate)
+            if (entry.date < cycle.startDate || entry.date > cycle.endDate)
             {
-                return BadRequest($"Entry date must be within the cycle date range ({cycle.StartDate.ToShortDateString()} to {cycle.EndDate.ToShortDateString()})");
+                return BadRequest($"Entry date must be within the cycle date range ({cycle.startDate.ToShortDateString()} to {cycle.endDate.ToShortDateString()})");
             }
 
             // Validate that the entry date matches the calendar month/year
-            // entry.Date.Month is an int; calendar.Month is a string. Convert calendar.Month to short for numeric comparison:
-            if (entry.Date.Month != Convert.ToInt16(calendar.Month) || entry.Date.Year != calendar.Year) 
+            short calendarMonth;
+            if (short.TryParse(calendar.month, out calendarMonth))
             {
-                return BadRequest($"Entry date must match calendar month/year (Month: {calendar.Month}, Year: {calendar.Year})");
+                // If calendar.month is a numeric value
+                if (entry.date.Month != calendarMonth || entry.date.Year != calendar.year)
+                {
+                    return BadRequest($"Entry date must match calendar month/year (Month: {calendar.month}, Year: {calendar.year})");
+                }
+            }
+            else
+            {
+                // If calendar.month is a month name, convert entry.date.Month to month name for comparison
+                string entryMonthName = new DateTime(2000, entry.date.Month, 1).ToString("MMMM");
+                if (entryMonthName != calendar.month || entry.date.Year != calendar.year)
+                {
+                    return BadRequest($"Entry date must match calendar month/year (Month: {calendar.month}, Year: {calendar.year})");
+                }
             }
 
             bool success = _cycleEntryRepository.InsertEntry(entry);
@@ -117,7 +132,7 @@ namespace PeriodTracker.API.Controllers
                 return BadRequest("Failed to create cycle entry");
             }
 
-            return CreatedAtAction(nameof(GetEntryById), new { id = entry.EntryId }, entry);
+            return CreatedAtAction(nameof(GetEntryById), new { id = entry.entryId }, entry);
         }
 
         // DELETE: api/cycleentry/{id}
