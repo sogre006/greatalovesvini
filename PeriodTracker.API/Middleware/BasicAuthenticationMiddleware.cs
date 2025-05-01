@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using PeriodTracker.Model.Repositories;
 
 namespace PeriodTracker.API.Middleware
@@ -7,12 +8,12 @@ namespace PeriodTracker.API.Middleware
     public class BasicAuthenticationMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly UserRepository _userRepository;
+        private readonly IServiceProvider _serviceProvider;
 
-        public BasicAuthenticationMiddleware(RequestDelegate next, UserRepository userRepository)
+        public BasicAuthenticationMiddleware(RequestDelegate next, IServiceProvider serviceProvider)
         {
             _next = next;
-            _userRepository = userRepository;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -27,11 +28,14 @@ namespace PeriodTracker.API.Middleware
 
             // Also bypass for login and register endpoints
             var path = context.Request.Path.ToString().ToLower();
-            if (path.Contains("/login") || path.Contains("/register"))
+            if (path.Contains("/login") || path.Contains("/register") || path.Contains("/user/exists"))
             {
                 await _next(context);
                 return;
             }
+
+            // Get scoped UserRepository from the request services
+            var userRepository = context.RequestServices.GetRequiredService<UserRepository>();
 
             // 1. Try to retrieve the Authorization header
             string? authHeader = context.Request.Headers.Authorization;
@@ -62,7 +66,7 @@ namespace PeriodTracker.API.Middleware
                 var bytes = Convert.FromBase64String(encodedCredentials);
                 var credentials = Encoding.UTF8.GetString(bytes);
                 
-                // 5. Extract username and password (separated by colon)
+                // 5. Extract email and password (separated by colon)
                 var parts = credentials.Split(':');
                 if (parts.Length != 2)
                 {
@@ -71,24 +75,41 @@ namespace PeriodTracker.API.Middleware
                     return;
                 }
                 
-                var username = parts[0];
+                var email = parts[0]; // This is now treated as the email
                 var password = parts[1];
+                
+                Console.WriteLine($"Auth attempt with email: {email}");
                 
                 // 6. Check user credentials against database
                 var validUser = false;
                 
                 // If it's our hardcoded test user
-                if (username == "john.doe" && password == "VerySecret!")
+                if (email == "john.doe" && password == "VerySecret!")
                 {
                     validUser = true;
+                    Console.WriteLine("Test user authenticated successfully");
                 }
                 else
                 {
-                    // Try to find user by email (username)
-                    var user = _userRepository.GetUserByEmail(username);
-                    if (user != null && user.pw == password) // In real app, use proper password verification
+                    // Try to find user by email
+                    var user = userRepository.GetUserByEmail(email);
+                    if (user != null)
                     {
-                        validUser = true;
+                        Console.WriteLine($"Found user with email: {email}, ID: {user.userId}");
+                        
+                        if (user.pw == password) // In real app, use proper password verification
+                        {
+                            validUser = true;
+                            Console.WriteLine("Password matches, user authenticated successfully");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Password does not match");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"No user found with email: {email}");
                     }
                 }
                 
@@ -111,6 +132,7 @@ namespace PeriodTracker.API.Middleware
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Authentication error");
                 Console.WriteLine($"Auth exception: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return;
             }
         }
