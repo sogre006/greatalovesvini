@@ -1,4 +1,3 @@
-// Change from LoginController.cs to AuthController.cs
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeriodTracker.Model.Entities;
@@ -25,6 +24,8 @@ namespace PeriodTracker.API.Controllers
         [HttpPost("login")]
         public ActionResult Login([FromBody] LoginRequest credentials)
         {
+            Console.WriteLine($"Login attempt received for email: {credentials.Email}");
+            
             // Check credentials
             if (credentials.Email == TEST_EMAIL && credentials.Password == TEST_PASSWORD)
             {
@@ -37,6 +38,8 @@ namespace PeriodTracker.API.Controllers
                 
                 // 3. Prefix with "Basic " (note the space)
                 var headerValue = $"Basic {encodedCredentials}";
+                
+                Console.WriteLine($"Test login successful, generated header: {headerValue}");
                 
                 // Return the header value
                 return Ok(new { headerValue = headerValue });
@@ -53,6 +56,8 @@ namespace PeriodTracker.API.Controllers
                     var bytes = System.Text.Encoding.UTF8.GetBytes(text);
                     var encodedCredentials = Convert.ToBase64String(bytes);
                     var headerValue = $"Basic {encodedCredentials}";
+                    
+                    Console.WriteLine($"DB user login successful for {credentials.Email}, generated header: {headerValue}");
                     
                     return Ok(new { headerValue = headerValue });
                 }
@@ -71,9 +76,12 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public ActionResult Register([FromBody] RegisterRequest request)
         {
+            Console.WriteLine($"Register attempt received for email: {request.Email}");
+            
             // Check if email already exists
             if (_userRepository.EmailExists(request.Email))
             {
+                Console.WriteLine($"Register failed: Email '{request.Email}' already exists");
                 return Conflict($"Email '{request.Email}' already exists");
             }
 
@@ -89,9 +97,11 @@ namespace PeriodTracker.API.Controllers
             bool success = _userRepository.InsertUser(user);
             if (!success)
             {
+                Console.WriteLine($"Register failed: Failed to create user for '{request.Email}'");
                 return BadRequest("Failed to create user");
             }
 
+            Console.WriteLine($"Register successful for email: {request.Email}");
             return CreatedAtAction(nameof(Login), new { }, new { userId = user.userId, name = user.name, email = user.email });
         }
     }

@@ -25,6 +25,7 @@ builder.Services.AddCors(options =>
         builder.WithOrigins("http://localhost:4200") // Angular app's default URL
                .AllowAnyHeader()
                .AllowAnyMethod()
+               .AllowCredentials()  // Add this to allow credentials
                .WithExposedHeaders("Authorization");
     });
 });
@@ -45,12 +46,15 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    
+    // Add detailed exception handling in development
+    app.UseDeveloperExceptionPage();
 }
 
 // Add exception handling middleware
 app.UseExceptionHandler("/error");
 
-// Enable CORS
+// Enable CORS before authentication middleware
 app.UseCors("AllowAngularApp");
 
 // Add Basic Authentication middleware before Authorization
@@ -59,8 +63,24 @@ app.UseBasicAuthenticationMiddleware();
 // Use authorization middleware
 app.UseAuthorization();
 
+// Log all incoming requests (just for troubleshooting)
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
+    
+    // Log all headers
+    foreach (var header in context.Request.Headers)
+    {
+        Console.WriteLine($"Header: {header.Key}: {header.Value}");
+    }
+    
+    await next.Invoke();
+    Console.WriteLine($"Response: {context.Response.StatusCode} for {context.Request.Path}");
+});
+
 // Map API controllers
 app.MapControllers();
 
 // Start the application
+Console.WriteLine("Starting application...");
 app.Run();
