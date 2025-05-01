@@ -1,6 +1,7 @@
 using PeriodTracker.API.Middleware;
 using PeriodTracker.Model.Repositories;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,7 @@ builder.Services.AddCors(options =>
         builder.WithOrigins("http://localhost:4200") // Angular app's default URL
                .AllowAnyHeader()
                .AllowAnyMethod()
-               .AllowCredentials()  // Add this to allow credentials
+               .AllowCredentials()  // Allow credentials
                .WithExposedHeaders("Authorization");
     });
 });
@@ -33,7 +34,7 @@ builder.Services.AddCors(options =>
 // Configure authorization policies
 builder.Services.AddAuthorization(options =>
 {
-    // Default policy
+    // Default policy - requires authenticated user
     options.DefaultPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
@@ -50,11 +51,14 @@ if (app.Environment.IsDevelopment())
     // Add detailed exception handling in development
     app.UseDeveloperExceptionPage();
 }
+else
+{
+    // Use more production-appropriate error handling
+    app.UseExceptionHandler("/error");
+    app.UseHsts();
+}
 
-// Add exception handling middleware
-app.UseExceptionHandler("/error");
-
-// Enable CORS before authentication middleware
+// Enable CORS - must come before authentication middleware
 app.UseCors("AllowAngularApp");
 
 // Add Basic Authentication middleware before Authorization
@@ -63,23 +67,23 @@ app.UseBasicAuthenticationMiddleware();
 // Use authorization middleware
 app.UseAuthorization();
 
-// Log all incoming requests (just for troubleshooting)
-app.Use(async (context, next) =>
-{
-    Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
-    
-    // Log all headers
-    foreach (var header in context.Request.Headers)
-    {
-        Console.WriteLine($"Header: {header.Key}: {header.Value}");
-    }
-    
-    await next.Invoke();
-    Console.WriteLine($"Response: {context.Response.StatusCode} for {context.Request.Path}");
-});
-
 // Map API controllers
 app.MapControllers();
+
+// Add this to ensure unauthorized requests are properly handled
+app.Use(async (context, next) =>
+{
+    await next();
+    
+    // If we get here with a 401, it means the request wasn't handled
+    // by an endpoint - return a proper 401 response
+    if (context.Response.StatusCode == 401 && 
+        !context.Response.HasStarted && 
+        !context.Request.Path.StartsWithSegments("/error"))
+    {
+        await context.Response.WriteAsJsonAsync(new { message = "Authentication required" });
+    }
+});
 
 // Start the application
 Console.WriteLine("Starting application...");
