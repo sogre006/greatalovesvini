@@ -4,12 +4,20 @@ using System.Text.Json.Serialization;
 
 public class User
 {
+    // Keep the existing constructor
     public User(int id)
     {
         userId = id;
     }
+    
+    // Add a parameterless constructor for JSON deserialization
+    [JsonConstructor]
+    public User()
+    {
+        // Parameterless constructor for deserialization
+    }
 
-    public int userId { get; set; } // Using camelCase to match frontend expectations
+    public int userId { get; set; }
     public string name { get; set; }
     public string email { get; set; }
     public string pw { get; set; } // Database column name is pw

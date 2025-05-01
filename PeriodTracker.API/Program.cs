@@ -1,4 +1,6 @@
+using PeriodTracker.API.Middleware;
 using PeriodTracker.Model.Repositories;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,8 +24,18 @@ builder.Services.AddCors(options =>
     {
         builder.WithOrigins("http://localhost:4200") // Angular app's default URL
                .AllowAnyHeader()
-               .AllowAnyMethod();
+               .AllowAnyMethod()
+               .WithExposedHeaders("Authorization");
     });
+});
+
+// Configure authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    // Default policy
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
 });
 
 var app = builder.Build();
@@ -35,12 +47,20 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Add exception handling middleware
+app.UseExceptionHandler("/error");
+
 // Enable CORS
 app.UseCors("AllowAngularApp");
+
+// Add Basic Authentication middleware before Authorization
+app.UseBasicAuthenticationMiddleware();
 
 // Use authorization middleware
 app.UseAuthorization();
 
+// Map API controllers
 app.MapControllers();
 
+// Start the application
 app.Run();
